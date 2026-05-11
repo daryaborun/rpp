@@ -3,8 +3,8 @@ import csv
 from typing import List, Iterator
 #изменение дл гит
 
+#изменение из клона
 
-#изменение из клона 
 #изменение из оригинала
 
 DATA_FILE = 'data.csv'
