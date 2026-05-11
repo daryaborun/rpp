@@ -7,7 +7,8 @@ from typing import List, Iterator
 DATA_FILE = 'data.csv'
 TARGET_DIR = 'c:/Users/Dasha/Desktop/labs/rpp'
 
-
+#изменение в branch11
+#изменение и br22
 class Receipt:
     
     def __init__(self, rid: int, date: str, amount: float, item: str):
