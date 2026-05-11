@@ -2,6 +2,8 @@ import os
 import csv
 from typing import List, Iterator
 
+#изменение дл гит
+
 DATA_FILE = 'data.csv'
 TARGET_DIR = 'c:/Users/Dasha/Desktop/labs/rpp'
 

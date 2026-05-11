@@ -1,6 +1,8 @@
 import os
 import csv
 
+#изменение дял гит
+
 DATA_FILE = 'data.csv'
 TARGET_DIR = 'c:/Users/Dasha/Desktop/labs/rpp'
 1
