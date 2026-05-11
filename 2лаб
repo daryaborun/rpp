@@ -1,0 +1,122 @@
+import numpy as np
+
+def get_matrix_dimensions():
+    while True:
+        try:
+            print("\n Ввод размеров матрицы")
+            n = int(input("Введите количество строк (N): "))
+            m = int(input("Введите количество столбцов (M): "))
+            
+            if n <= 0 or m <= 0:
+                print("[Ошибка] Размеры должны быть положительными числами!")
+                continue
+                
+            return n, m
+        except ValueError:
+            print("[Ошибка] Введите целые числа!")
+
+def chooseInputMode():
+    print("\nВыбор способа ввода данных ")
+    print("1. Автоматическая генерация (numpy)")
+    print("2. Ручной ввод элементов")
+    
+    while True:
+        choice = input("Ваш выбор (1 или 2): ").strip()
+        if choice == '1':
+            return True
+        elif choice == '2':
+            return False
+        else:
+            print("Введите 1 или 2!")
+
+def generateMatrix(n, m):
+    matrix = np.random.uniform(0, 100, size=(n, m))
+    print(f"[OK] Матрица {n}x{m} сгенерирована")
+    return matrix
+
+def inputMatrixManually(n, m):
+    print(f"\nРучной ввод матрицы {n}x{m}")
+    print("Вводите элементы построчно")
+    
+    matrix_list = []
+    
+    for i in range(n):
+        while True:
+            try:
+                row_input = input(f"Строка {i+1} ({m} чисел): ").strip()
+                row = [float(x.replace(',', '.')) for x in row_input.split()]
+                
+                if len(row) != m:
+                    print(f"[Ошибка] В строке должно быть {m} чисел! Введено: {len(row)}")
+                    continue
+                    
+                matrix_list.append(row)
+                break
+            except ValueError:
+                print("[Ошибка] Вводите только числа!")
+    
+    matrix = np.array(matrix_list)
+    print(f"[OK] Матрица {n}x{m} введена вручную.")
+    return matrix
+
+def calculateExtendedMatrix(matrix):
+    #средние по строкам
+    row_means = np.mean(matrix, axis=1).reshape(-1, 1)
+    
+    #средние по столбцам 
+    col_means = np.mean(matrix, axis=0).reshape(1, -1)
+    
+    #общее среднее 
+    total_mean = np.array([[np.mean(matrix)]])
+    
+    #итог
+    top_part = np.hstack((matrix, row_means))      # (N, M+1)
+    bottom_part = np.hstack((col_means, total_mean)) # (1, M+1)
+    result_matrix = np.vstack((top_part, bottom_part)) # (N+1, M+1)
+    
+    return result_matrix
+
+def saveToFile(filename, original, result, mode_name):
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            
+            f.write("исходная (N x M):\n")
+            for row in original:
+                f.write(" ".join(f"{val:10.2f}" for val in row) + "\n")
+            
+            f.write("результирующая (N+1 x M+1):\n")
+            for row in result:
+                f.write(" ".join(f"{val:10.2f}" for val in row) + "\n")
+            
+        print(f"\n[OK] Данные успешно сохранены в файл: {filename}")
+        
+    except Exception as e:
+        print(f"\n[ERROR] Ошибка при записи в файл: {e}")
+
+def main():
+    FILE_NAME = "lab_result.txt"
+    
+    n, m = get_matrix_dimensions()
+    
+    is_auto = chooseInputMode()
+    
+    if is_auto:
+        original_matrix = generateMatrix(n, m)
+        mode_name = "Автоматическая генерация"
+    else:
+        original_matrix = inputMatrixManually(n, m)
+        mode_name = "Ручной ввод пользователем"
+    
+    result_matrix = calculateExtendedMatrix(original_matrix)
+    print("[OK] Матрица обработана")
+    
+    saveToFile(FILE_NAME, original_matrix, result_matrix, mode_name)
+    
+    print("\nИсходная матрица:")
+    print(np.array2string(original_matrix, precision=2, suppress_small=True))
+    
+    print("\nРасширенная матрица:")
+    print(np.array2string(result_matrix, precision=2, suppress_small=True))
+
+if __name__ == "__main__":
+    main()

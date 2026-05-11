@@ -1,0 +1,255 @@
+import os
+import csv
+from typing import List, Iterator
+
+DATA_FILE = 'data.csv'
+TARGET_DIR = 'c:/Users/Dasha/Desktop/labs/rpp'
+
+
+class Receipt:
+    
+    def __init__(self, rid: int, date: str, amount: float, item: str):
+        self.id = rid
+        self.date = date
+        self.sum = amount
+        self.item = item
+    
+    def __setattr__(self, name, value):
+        if name == 'id' and (not isinstance(value, int) or value <= 0):
+            raise ValueError(f"ID положительное целое, а не {value}")
+        if name == 'sum' and (not isinstance(value, (int, float)) or value < 0):
+            raise ValueError(f"Сумма >= 0, а не {value}")
+        if name in ('date', 'item') and (not value or not str(value).strip()):
+            raise ValueError(f"Поле {name} не может быть пустым")
+        super().__setattr__(name, value)
+    
+    def __repr__(self):
+        return f"Чек({self.id}, '{self.date}', {self.sum:.2f}₽, '{self.item}')"
+    
+    def toDict(self):
+        return {'id': self.id, 'date': self.date, 'sum': self.sum, 'item': self.item}
+
+
+class ElectronicReceipt(Receipt):
+    
+    def __init__(self, rid: int, date: str, amount: float, item: str, email: str = ''):
+        super().__init__(rid, date, amount, item)
+        self.email = email
+    
+    def __setattr__(self, name, value):
+        if name == 'email' and value and '@' not in str(value):
+            raise ValueError("Некорректный email")
+        super().__setattr__(name, value)
+    
+    def __repr__(self):
+        return f"ЭлЧек({self.id}, '{self.date}', {self.sum:.2f}₽, '{self.item}', email='{self.email}')"
+    
+    def toDict(self):
+        d = super().toDict()
+        d['email'] = self.email
+        return d
+    
+    @staticmethod
+    def isValidEmail(email: str) -> bool:
+        return '@' in email and '.' in email.split('@')[-1]
+
+
+class ReceiptCollection:
+    
+    def __init__(self, filename=DATA_FILE):
+        self.filename = filename
+        self.items: List[Receipt] = []
+        self._pos = 0
+    
+    def __getitem__(self, idx: int) -> Receipt:
+        return self.items[idx]
+    
+    def __iter__(self) -> Iterator[Receipt]:
+        self._pos = 0
+        return self
+    
+    def __next__(self) -> Receipt:
+        if self._pos >= len(self.items):
+            raise StopIteration
+        item = self.items[self._pos]
+        self._pos += 1
+        return item
+    
+    def __repr__(self):
+        return f"Коллекция('{self.filename}', чеков: {len(self.items)})"
+    
+    def __len__(self):
+        return len(self.items)
+    
+    def __contains__(self, rid: int) -> bool:
+        return any(r.id == rid for r in self.items)
+    
+    def byMinSum(self, min_sum: float):
+        for r in self.items:
+            if r.sum >= min_sum:
+                yield r
+    
+    def byItem(self, text: str):
+        t = text.lower()
+        for r in self.items:
+            if t in r.item.lower():
+                yield r
+    
+    def byType(self, cls):
+        for r in self.items:
+            if isinstance(r, cls):
+                yield r
+    
+    @staticmethod
+    def countFiles(path: str) -> int:
+        try:
+            return sum(1 for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)))
+        except FileNotFoundError:
+            return 0
+    
+    @staticmethod
+    def formatSum(amount: float) -> str:
+        return f"{amount:,.2f} ₽"
+    
+    def add(self, r: Receipt):
+        if r.id in self:
+            raise ValueError(f"ID={r.id} уже есть")
+        self.items.append(r)
+    
+    def load(self):
+        self.items.clear()
+        if not os.path.exists(self.filename):
+            return
+        with open(self.filename, 'r', encoding='utf-8') as f:
+            for row in csv.DictReader(f):
+                try:
+                    if 'email' in row and row.get('email', '').strip():
+                        self.items.append(ElectronicReceipt(
+                            int(row['id']), row['date'], float(row['sum']), row['item'], row.get('email', '')
+                        ))
+                    else:
+                        self.items.append(Receipt(int(row['id']), row['date'], float(row['sum']), row['item']))
+                except (ValueError, KeyError):
+                    pass
+    
+    def save(self):
+        fields = ['id', 'date', 'sum', 'item', 'email']
+        with open(self.filename, 'w', encoding='utf-8', newline='') as f:
+            w = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
+            w.writeheader()
+            for r in self.items:
+                w.writerow(r.toDict())
+    
+    def sortBy(self, field):
+        new_c = ReceiptCollection(self.filename)
+        new_c.items = sorted(self.items, key=lambda r: getattr(r, field, ''))
+        return new_c
+    
+    def show(self, title=""):
+        if title:
+            print(f"\n{title}")
+        if not self.items:
+            print("Пусто")
+            return
+        for r in self.items:
+            print(f"  [{r.id}] {r.date} | {r.sum:.2f}₽ | {r.item}")
+
+
+coll = ReceiptCollection(DATA_FILE)
+
+
+def printMenu():
+    print(f"МЕНЮ | {coll}")
+    print("1. Файлы в папке")
+    print("2. Все чеки")
+    print("3. Сортировка по товару")
+    print("4. Сортировка по сумме")
+    print("5. Генератор: сумма >= X")
+    print("6. Генератор: поиск по товару")
+    print("7. Добавить чек")
+    print("8. Добавить электронный чек")
+    print("9. Итератор: for in")
+    print("10. Доступ по индексу: чек[N]")
+    print("11. Проверка: ID есть?")
+    print("0. Выход")
+
+
+def askChoice():
+    printMenu()
+    choice = input("> ").strip()
+    
+    if choice == '0':
+        print("Выход")
+        return
+    
+    if choice == '1':
+        print(f"Файлов: {ReceiptCollection.countFiles(TARGET_DIR)}")
+    elif choice == '2':
+        coll.show("ВСЕ ЧЕКИ")
+    elif choice == '3':
+        coll.sortBy('item').show("ПО ТОВАРУ")
+    elif choice == '4':
+        coll.sortBy('sum').show("ПО СУММЕ")
+    elif choice == '5':
+        try:
+            x = float(input("Мин.сумма: "))
+            print("Генератор byMinSum:")
+            for r in coll.byMinSum(x):
+                print(f"  {r}")
+        except ValueError:
+            print("Число!")
+    elif choice == '6':
+        t = input("Поиск: ")
+        print("Генератор byItem:")
+        for r in coll.byItem(t):
+            print(f"  {r}")
+    elif choice == '7':
+        try:
+            rid = int(input("ID: "))
+            date = input("Дата (YYYY-MM-DD HH:MM): ")
+            s = float(input("Сумма: "))
+            item = input("Товар: ")
+            coll.add(Receipt(rid, date, s, item))
+            coll.save()
+            print("Готово")
+        except ValueError as e:
+            print(f"Ошибка: {e}")
+    elif choice == '8':
+        try:
+            rid = int(input("ID: "))
+            date = input("Дата: ")
+            s = float(input("Сумма: "))
+            item = input("Товар: ")
+            email = input("Email: ")
+            coll.add(ElectronicReceipt(rid, date, s, item, email))
+            coll.save()
+            print(f"Проверка email: {ElectronicReceipt.isValidEmail(email)}")
+        except ValueError as e:
+            print(f"Ошибка: {e}")
+    elif choice == '9':
+        print("Итератор:")
+        for r in coll:
+            print(f"  {r}")
+    elif choice == '10':
+        try:
+            n = int(input(f"Индекс (0..{len(coll)-1}): "))
+            print(f"coll[{n}] = {coll[n]}")
+        except (ValueError, IndexError) as e:
+            print(f"Ошибка: {e}")
+    elif choice == '11':
+        try:
+            rid = int(input("ID: "))
+            print("Да" if rid in coll else "Нет")
+        except ValueError:
+            print("Число!")
+    
+    askChoice()
+
+
+def main():
+    coll.load()
+    askChoice()
+
+
+if __name__ == "__main__":
+    main()

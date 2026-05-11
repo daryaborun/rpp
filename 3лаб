@@ -1,0 +1,167 @@
+import os
+import csv
+
+DATA_FILE = 'data.csv'
+TARGET_DIR = 'c:/Users/Dasha/Desktop/labs/rpp'
+1
+def count_files_in_directory(path):
+    """
+    Задание 1: колво файлов в директории
+    """
+    try:
+        items = os.listdir(path)
+        files_count = 0
+        for item in items:
+            item_path = os.path.join(path, item)
+            if os.path.isfile(item_path):
+                files_count += 1
+        return files_count
+    except FileNotFoundError:
+        return 0
+
+def load_data(filename):
+    """
+    Задание 2: Считывает CSV в список словарей.
+    """
+    data = []
+    if not os.path.exists(filename):
+        print(f"Файл {filename} не найден. Будет создан пустой список.")
+        return data
+    
+    try:
+        with open(filename, mode='r', encoding='utf-8', newline='') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                try:
+                    row['id'] = int(row['id'])
+                    row['sum'] = float(row['sum'])
+                except ValueError:
+                    print(f"Ошибка преобразования данных в строке: {row}")
+                    continue
+                data.append(row)
+    except Exception as e:
+        print(f"Ошибка чтения файла: {e}")
+    
+    return data
+
+def save_data(filename, data):
+    """
+    Задание 3: Сохраняет данные обратно в CSV.
+    """
+    fieldnames = ['id', 'date', 'sum', 'item']
+    try:
+        with open(filename, mode='w', encoding='utf-8', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(data)
+        print(f"Данные успешно сохранены в {filename}")
+    except Exception as e:
+        print(f"Ошибка записи файла: {e}")
+
+def sort_by_string_field(data, field):
+    """
+    Задание 2.1: Сортировка по строковому полю.
+    """
+    return sorted(data, key=lambda x: x[field])
+
+def sort_by_numeric_field(data, field):
+    """
+    Задание 2.2: Сортировка по числовому полю.
+    """
+    return sorted(data, key=lambda x: x[field])
+
+def filter_by_criteria(data, field, value):
+    """
+    Задание 2.3: Фильтрация по критерию.
+    """
+    result = []
+    for item in data:
+        if field in ['sum', 'id']:
+            try:
+                if item[field] >= float(value):
+                    result.append(item)
+            except ValueError:
+                continue
+        else:
+            if value.lower() in item[field].lower():
+                result.append(item)
+    return result
+
+def print_data(data):
+    """для красивого вывода"""
+    if not data:
+        print("Список пуст.")
+        return
+    print(f"{'ID':<5} | {'Дата':<20} | {'Сумма':<10} | {'Товар'}")
+    for row in data:
+        print(f"{row['id']:<5} | {row['date']:<20} | {row['sum']:<10.2f} | {row['item']}")
+    print(f"Всего записей: {len(data)}")
+
+
+def main():
+    data = load_data(DATA_FILE)
+    
+    while True:
+        print("\n МЕНЮ")
+        print("1. Посчитать количество файлов в текущей папке")
+        print("2. Загрузить и показать все чеки")
+        print("3. Сортировать по товару (строковое поле)")
+        print("4. Сортировать по сумме (числовое поле)")
+        print("5. Фильтровать чеки (сумма больше X)")
+        print("6. Добавить новый чек и сохранить")
+        print("0. Выход")
+        
+        choice = input("Выберите действие: ")
+
+        if choice == '1':
+            count = count_files_in_directory(TARGET_DIR)
+            print(f"Количество файлов в директории '{TARGET_DIR}': {count}")
+            
+        elif choice == '2':
+            print_data(data)
+            
+        elif choice == '3':
+            sorted_data = sort_by_string_field(data, 'item')
+            print("\nОтсортировано по наименованию товара:")
+            print_data(sorted_data)
+            
+        elif choice == '4':
+            sorted_data = sort_by_numeric_field(data, 'sum')
+            print("\nОтсортировано по сумме чека:")
+            print_data(sorted_data)
+            
+        elif choice == '5':
+            try:
+                threshold = float(input("Введите минимальную сумму для фильтра: "))
+                filtered_data = filter_by_criteria(data, 'sum', threshold)
+                print(f"\nЧеки с суммой больше {threshold}:")
+                print_data(filtered_data)
+            except ValueError:
+                print("Ошибка: введите число.")
+                
+        elif choice == '6':
+            try:
+                new_id = int(input("Введите номер чека (ID): "))
+                new_date = input("Введите дату и время (YYYY-MM-DD HH:MM): ")
+                new_sum = float(input("Введите сумму: "))
+                new_item = input("Введите наименование товара: ")
+                
+                new_record = {
+                    'id': new_id,
+                    'date': new_date,
+                    'sum': new_sum,
+                    'item': new_item
+                }
+                data.append(new_record)
+                save_data(DATA_FILE, data)
+            except ValueError:
+                print("Ошибка ввода данных")
+                
+        elif choice == '0':
+            print("Завершение работы программы")
+            break
+        else:
+            print("Неверный выбор, попробуйте снова")
+
+if __name__ == "__main__":
+    main()
