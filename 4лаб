@@ -7,7 +7,11 @@ DATA_FILE = 'data.csv'
 TARGET_DIR = 'c:/Users/Dasha/Desktop/labs/rpp'
 
 #изменение в branch11
+<<<<<<< HEAD
 #изменение в branch22
+=======
+#изменение и br22
+>>>>>>> branch22
 class Receipt:
     
     def __init__(self, rid: int, date: str, amount: float, item: str):
