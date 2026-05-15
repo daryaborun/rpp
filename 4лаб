@@ -1,16 +1,9 @@
 import os
 import csv
 from typing import List, Iterator
-#изменение дл гит
-
-#изменение из клона
-
-#изменение из оригинала
 
 DATA_FILE = 'data.csv'
 TARGET_DIR = 'c:/Users/Dasha/Desktop/labs/rpp'
-
-#изменение в branch11
 
 class Receipt:
     
@@ -19,6 +12,8 @@ class Receipt:
         self.date = date
         self.sum = amount
         self.item = item
+        
+        #изменения для гит оригинал
     
     def __setattr__(self, name, value):
         if name == 'id' and (not isinstance(value, int) or value <= 0):
